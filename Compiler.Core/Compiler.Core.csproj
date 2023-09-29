@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+        <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
+        <PackageReference Include="YaccLexTools.Gppg" Version="1.5.2.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!--      <Reference Include="Test">-->
+        <!--        <HintPath>libs\Test.dll</HintPath>-->
+        <!--      </Reference>-->
+        <Reference Include="GeneratedDLL">
+            <HintPath>libs\GeneratedDLL.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+
+</Project>
