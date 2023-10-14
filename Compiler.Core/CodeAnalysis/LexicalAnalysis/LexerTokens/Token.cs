@@ -1,5 +1,4 @@
 ﻿using Compiler.Core.CodeAnalysis.LexicalAnalysis.LexerTokens.Library;
-using Compiler.Core.CodeAnalysis.SyntaxAnalysis;
 
 namespace Compiler.Core.CodeAnalysis.LexicalAnalysis.LexerTokens;
 
@@ -68,6 +67,17 @@ public class IntTk : Token
     }
 
     public override Tokens TokenId => Tokens.TkIntLiteral;
+}
+public class StringTk : Token
+{
+    public string Value { get; }
+
+    public StringTk(string value)
+    {
+        Value = value;
+    }
+
+    public override Tokens TokenId => Tokens.TkStringLiteral;
 }
 
 public class RealTk : Token

@@ -6,6 +6,7 @@ public static class TokenRegexes
 {
     // https://regex101.com/
     public static readonly Regex Numbers = new(@"^[-]?(\d+\.?\d*|\d*\.\d+)$");
+    public static readonly Regex Strings = new(@"^""[\s\S]*[^\\]""$");
     public static readonly Regex Identifiers = new(@"^[_a-zA-Z]+[_a-zA-Z1-9]*");
     public static readonly Regex Comments = new(@"^((\/\*[\S\s]*\*\/)|(\/\/.*\r\n))");
     public static readonly Regex Whitespaces = new(@"^\s");

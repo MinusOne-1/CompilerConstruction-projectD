@@ -10,9 +10,7 @@ public class Lexer
     private int _position;
 
     public List<Token> ProgramTokens { get; } = new();
-    public Dictionary<Location, Token> ProgramTokenByLocation { get; } = new();
-    public Token? CurrentToken => _position - 1 >= 0 ? ProgramTokens[_position - 1] : null;
-
+    
     public Lexer(string programText)
     {
         _programText = programText;
@@ -40,7 +38,9 @@ public class Lexer
             else if (preset != Tokens.TkUnknown)
             {
 
-                if (Enum.IsDefined(typeof(KeywordTokens), (int)preset) && !char.IsLetter(symbol))
+                if (Enum.IsDefined(typeof(LiteralTypesIdentifiers), (int)preset) && !char.IsLetter(symbol))
+                    token = new EnumeratedTk<LiteralTypesIdentifiers>(preset);
+                else if (Enum.IsDefined(typeof(KeywordTokens), (int)preset) && !char.IsLetter(symbol))
                     token = new EnumeratedTk<KeywordTokens>(preset);
 
                 else if (TokenRegexes.Comparators.IsMatch(buffer))
@@ -60,6 +60,10 @@ public class Lexer
             {
                 if (long.TryParse(buffer, out var integer)) token = new IntTk(integer);
                 else if (double.TryParse(buffer, out var real)) token = new RealTk(real);
+            }
+            else if (TokenRegexes.Strings.IsMatch(buffer))
+            {
+                token = new StringTk(buffer);
             }
             else if (bool.TryParse(buffer, out var boolean))
             {
@@ -88,7 +92,6 @@ public class Lexer
             {
                 token.Span = new Location(lineNumber, columnNumber - buffer.Length, lineNumber, columnNumber - 1);
                 ProgramTokens.Add(token);
-                ProgramTokenByLocation.Add(token.Span, token);
                 token.TokenValue = buffer;
                 buffer = "";
             }
@@ -97,19 +100,6 @@ public class Lexer
             columnNumber++;
         }
     }
-
-    /*public int yylex()
-    {
-        if (_position >= ProgramTokens.Count)
-            return (int)Tokens.EOF;
-
-        return (int)ProgramTokens[_position++].TokenId;
-    }
-
-    public void yyerror(string format, params object[] args)
-    {
-        Console.Error.WriteLine($"{format} at {CurrentToken.Span}", args);
-    }*/
 
     private static Tokens CheckForEnum(string inputWord)
     {
@@ -125,10 +115,19 @@ public class Lexer
             "while" => Tokens.TkWhile,
             "loop" => Tokens.TkLoop,
             "in" => Tokens.TkIn,
-            "reverse" => Tokens.TkReverse,
             "if" => Tokens.TkIf,
             "then" => Tokens.TkThen,
             "else" => Tokens.TkElse,
+            "print" => Tokens.TkPrint,
+            "func" => Tokens.TkFunc,
+            
+            "Real" => Tokens.TkRealLiteralIdentifier,
+            "Integer" => Tokens.TkIntLiteralIdentifier,
+            "String" => Tokens.TkStringLiteralIdentifier,
+            "Bool" => Tokens.TkBoolLiteralIdentifier,
+            "Array" => Tokens.TkArrayIdentifier,
+            "Tuple" => Tokens.TkTupleIdentifier,
+            "Empty" => Tokens.TkEmptyIdentifier,
 
             //Punctuators:
             "(" => Tokens.TkRoundOpen,
@@ -160,7 +159,7 @@ public class Lexer
             "<" => Tokens.TkLess,
             ">" => Tokens.TkGreater,
             "=" => Tokens.TkEqual,
-            "/=" => Tokens.TkNotEqual,
+            "!=" => Tokens.TkNotEqual,
             _ => Tokens.TkUnknown
         };
     }

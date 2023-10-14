@@ -15,10 +15,21 @@ public enum PunctuatorTokens
     TkComma = Tokens.TkComma
 }
 
+public enum LiteralTypesIdentifiers
+{
+    TkIntLiteralIdentifier = Tokens.TkIntLiteralIdentifier,
+    TkRealLiteralIdentifier = Tokens.TkRealLiteralIdentifier,
+    TkStringLiteralIdentifier = Tokens.TkStringLiteralIdentifier,
+    TkBoolLiteralIdentifier = Tokens.TkBoolLiteralIdentifier,
+    TkArrayIdentifier = Tokens.TkArrayIdentifier,
+    TkTupleIdentifier = Tokens.TkTupleIdentifier,
+    TkEmptyIdentifier = Tokens.TkEmptyIdentifier,
+    
+}
+
 public enum KeywordTokens
 {
     TkType = Tokens.TkType,
-    TkIs = Tokens.TkIs,
     TkEnd = Tokens.TkEnd,
     TkReturn = Tokens.TkReturn,
     TkVar = Tokens.TkVar,
@@ -32,7 +43,9 @@ public enum KeywordTokens
     TkThen = Tokens.TkThen,
     TkElse = Tokens.TkElse,
     TkArray = Tokens.TkArray,
-    TkRecord = Tokens.TkRecord
+    TkPrint = Tokens.TkPrint,
+    TkIs = Tokens.TkIs,
+    
 }
 
 public enum OperatorTokens
@@ -47,8 +60,11 @@ public enum OperatorTokens
     TkAnd = Tokens.TkAnd,
     TkOr = Tokens.TkOr,
     TkXor = Tokens.TkXor,
-    TkRange = Tokens.TkRange
+    TkRange = Tokens.TkRange,
+    TkIs = Tokens.TkIs
+
 }
+
 
 internal enum Comparators
 {

@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Text;
 using Compiler.Core.CodeAnalysis.LexicalAnalysis.LexerTokens;
+using Compiler.Core.CodeAnalysis.LexicalAnalysis.LexerTokens.Library;
 using Newtonsoft.Json;
 
 namespace Compiler.Core.CodeAnalysis.SyntaxAnalysis;
@@ -49,7 +50,7 @@ public abstract class Node
             builder.Length -= 2;
             if (leaf.Kind != null) builder.Append($": {leaf.Kind}");
             builder.Append(' ');
-            builder.AppendLine(JsonConvert.SerializeObject(leaf.Token));
+            builder.AppendLine(leaf.Token.ToString());
             return builder;
         }
 
@@ -60,7 +61,7 @@ public abstract class Node
     }
 }
 
-public class ListNode<T> : Node
+public class ListNode<T> : ExpressionNode
     where T : Node
 {
     public List<T> Items { get; } = new();
@@ -78,6 +79,48 @@ public class ListNode<T> : Node
 
         if (items is not null)
             Items.AddRange(items.GetChildren().Cast<T>());
+    }
+}
+
+public class PrintNode : DeclarationNode
+{
+    public List<Node> Items { get; } = new();
+
+    public override IEnumerable<Node> GetChildren() =>
+        GetChildren(Items);
+
+    public PrintNode(IdentifierNode Identifier_) : base(Identifier_)
+    {
+    }
+}
+
+public class TupleElementNode : VariableDeclarationNode
+{
+    public override IEnumerable<Node> GetChildren() =>
+        GetChildren(null, Identifier, Type, Expression);
+
+    public TupleElementNode(IdentifierNode identifier)
+        : base(identifier)
+    {
+    }
+
+    public TupleElementNode(VariableDeclarationNode node)
+        : base(node.Identifier)
+    {
+        Expression = node.Expression;
+        Type = node.Type;
+    }
+}
+
+public class TupleNode : ExpressionNode
+{
+    public Dictionary<IdentifierNode, TupleElementNode> Items { get; } = new();
+
+    public override IEnumerable<Node> GetChildren() =>
+        GetChildren(Items.Values);
+
+    public TupleNode()
+    {
     }
 }
 
@@ -106,81 +149,48 @@ public class ProgramNode : Node
 
 public abstract class DeclarationNode : Node
 {
-    public IdentifierNode Identifier { get; }
+    public IdentifierNode? Identifier { get; }
 
     protected DeclarationNode(IdentifierNode identifier)
     {
         Identifier = identifier;
     }
-}
 
-public abstract class SimpleDeclarationNode : DeclarationNode
-{
-    public TypeNode? Type { get; }
-
-    protected SimpleDeclarationNode(IdentifierNode identifier, TypeNode? type)
-        : base(identifier)
+    protected DeclarationNode()
     {
-        Type = type;
     }
 }
 
-public class VariableDeclarationNode : SimpleDeclarationNode
+public class VariableDeclarationNode : DeclarationNode
 {
-    public ExpressionNode? Expression { get; }
+    public ExpressionNode? Expression { get; set; }
+    public TypeNode? Type { get; set; }
 
     public override IEnumerable<Node> GetChildren() =>
         GetChildren(null, Identifier, Type, Expression);
 
-    public VariableDeclarationNode(IdentifierNode identifier, TypeNode? type, ExpressionNode? expression)
-        : base(identifier, type)
-    {
-        Expression = expression;
-    }
-}
-
-public class TypeDeclarationNode : SimpleDeclarationNode
-{
-    public override IEnumerable<Node> GetChildren() =>
-        GetChildren(null, Identifier, Type);
-
-    public TypeDeclarationNode(IdentifierNode identifier, TypeNode type)
-        : base(identifier, type)
-    {
-    }
-}
-
-public class RoutineDeclarationNode : DeclarationNode
-{
-    public TypeNode? ReturnType { get; }
-    public List<ParameterDeclarationNode> Parameters { get; }
-    public BodyNode Body { get; }
-
-    public override IEnumerable<Node> GetChildren() =>
-        GetChildren(Parameters, Identifier, ReturnType, Body);
-
-    public RoutineDeclarationNode(IdentifierNode identifier, TypeNode? returnType,
-        ListNode<ParameterDeclarationNode> parameters, BodyNode body)
+    public VariableDeclarationNode(IdentifierNode identifier)
         : base(identifier)
     {
-        ReturnType = returnType;
-        Parameters = parameters.Items;
-        Body = body;
     }
 }
-
-public class ParameterDeclarationNode : Node
+public class VariableAssignmentNode : VariableDeclarationNode
 {
-    public IdentifierNode Identifier { get; }
-    public TypeNode Type { get; }
+    public ExpressionNode? Expression { get; set; }
+    public TypeNode? Type { get; set; }
 
     public override IEnumerable<Node> GetChildren() =>
-        GetChildren(null, Identifier, Type);
+        GetChildren(null, Identifier, Type, Expression);
 
-    public ParameterDeclarationNode(IdentifierNode identifier, TypeNode type)
+    public VariableAssignmentNode(IdentifierNode identifier)
+        : base(identifier)
     {
-        Identifier = identifier;
-        Type = type;
+    }
+
+    public VariableAssignmentNode(VariableDeclarationNode node) : base(node.Identifier)
+    {
+        Type = node.Type;
+        Expression = node.Expression;
     }
 }
 
@@ -190,7 +200,8 @@ public enum TypeKind
     [Description("real")] Real,
     [Description("boolean")] Boolean,
     [Description("array")] Array,
-    [Description("turple")] List
+    [Description("tuple")] Tuple,
+    [Description("empty")] Empty
 }
 
 public class TypeNode : Node
@@ -230,7 +241,7 @@ public class BodyNode : ListNode<Node>
     {
     }
 
-    public BodyNode(SimpleDeclarationNode declaration, BodyNode? remaining)
+    public BodyNode(DeclarationNode declaration, BodyNode? remaining)
         : base(declaration, remaining)
     {
     }
@@ -259,29 +270,36 @@ public class AssignmentNode : Node, IStatementNode
         Expression = expression;
     }
 }
-
-public class RoutineCallNode : PrimaryNode, IStatementNode
+public class FunctionNode : DeclarationNode, IStatementNode
 {
-    public IdentifierNode RoutineIdentifier { get; }
-    public List<ExpressionNode> Arguments { get; }
+    public ExpressionNode? Parametr { get; set; }
+    public ExpressionNode Expression { get; set; }
 
     public override IEnumerable<Node> GetChildren() =>
-        GetChildren(Arguments, RoutineIdentifier);
+        GetChildren(null, Parametr, Expression);
 
-    public RoutineCallNode(IdentifierNode routineIdentifier, ListNode<ExpressionNode> arguments)
+    public FunctionNode()
     {
-        RoutineIdentifier = routineIdentifier;
-        Arguments = arguments.Items;
+    }
+
+    public FunctionNode(ExpressionNode condition, ExpressionNode body)
+    {
+        Parametr = condition;
+        Expression = body;
     }
 }
 
-public class WhileLoopNode : Node, IStatementNode
+public class WhileLoopNode : DeclarationNode, IStatementNode
 {
-    public ExpressionNode Condition { get; }
-    public BodyNode Body { get; }
+    public ExpressionNode Condition { get; set; }
+    public BodyNode Body { get; set; }
 
     public override IEnumerable<Node> GetChildren() =>
         GetChildren(null, Condition, Body);
+
+    public WhileLoopNode()
+    {
+    }
 
     public WhileLoopNode(ExpressionNode condition, BodyNode body)
     {
@@ -290,20 +308,24 @@ public class WhileLoopNode : Node, IStatementNode
     }
 }
 
-public class ForLoopNode : Node, IStatementNode
+public class ForLoopNode : DeclarationNode, IStatementNode
 {
-    public IdentifierNode VariableIdentifier { get; }
-    public RangeNode Range { get; }
-    public BodyNode Body { get; }
+    public IdentifierNode VariableIdentifier { get; set; }
+    public RangeNode Range { get; set;}
+    public BodyNode Body { get; set;}
 
     public override IEnumerable<Node> GetChildren() =>
         GetChildren(null, VariableIdentifier, Range, Body);
 
-    public ForLoopNode(IdentifierNode variableIdentifier, RangeNode range, BodyNode body)
+    public ForLoopNode(IdentifierNode variableIdentifier, RangeNode range, BodyNode body) 
     {
         VariableIdentifier = variableIdentifier;
         Range = range;
         Body = body;
+    }
+
+    public ForLoopNode()
+    {
     }
 }
 
@@ -324,11 +346,11 @@ public class RangeNode : Node
     }
 }
 
-public class IfNode : Node, IStatementNode
+public class IfNode : DeclarationNode, IStatementNode
 {
-    public ExpressionNode Condition { get; }
-    public BodyNode ThenBody { get; }
-    public BodyNode? ElseBody { get; }
+    public ExpressionNode Condition { get; set; }
+    public BodyNode ThenBody { get; set;}
+    public BodyNode? ElseBody { get; set;}
 
     public override IEnumerable<Node> GetChildren() =>
         GetChildren(null, Condition, ThenBody, ElseBody);
@@ -339,6 +361,8 @@ public class IfNode : Node, IStatementNode
         ThenBody = thenBody;
         ElseBody = elseBody;
     }
+    public IfNode()
+    { }
 }
 
 public class ReturnNode : Node, IStatementNode
@@ -356,18 +380,18 @@ public class ReturnNode : Node, IStatementNode
 
 public class ExpressionNode : Node
 {
-    public ExpressionNode? Lhs { get; }
-    public OperatorNode? Operator { get; }
-    public ExpressionNode? Rhs { get; }
+    public ExpressionNode? Lhs { get; set; }
+    public OperatorNode? Operator { get; set; }
+    public ExpressionNode? Rhs { get; set; }
 
     public override IEnumerable<Node> GetChildren() =>
         GetChildren(null, Lhs, Operator, Rhs);
 
-    protected ExpressionNode()
+    public ExpressionNode()
     {
     }
 
-    protected ExpressionNode(OperatorNode op, ExpressionNode rhs)
+    public ExpressionNode(OperatorNode op, ExpressionNode rhs)
     {
         Operator = op;
         Rhs = rhs;
@@ -378,30 +402,6 @@ public class ExpressionNode : Node
         Lhs = lhs;
         Operator = op;
         Rhs = rhs;
-    }
-}
-
-public class RelationNode : ExpressionNode
-{
-    public RelationNode(ExpressionNode lhs, OperatorNode op, ExpressionNode rhs)
-        : base(lhs, op, rhs)
-    {
-    }
-}
-
-public class SimpleNode : ExpressionNode
-{
-    public SimpleNode(ExpressionNode lhs, OperatorNode op, ExpressionNode rhs)
-        : base(lhs, op, rhs)
-    {
-    }
-}
-
-public class FactorNode : ExpressionNode
-{
-    public FactorNode(ExpressionNode lhs, OperatorNode op, ExpressionNode rhs)
-        : base(lhs, op, rhs)
-    {
     }
 }
 
@@ -417,19 +417,12 @@ public abstract class PrimaryNode : ExpressionNode
     }
 }
 
-public class UnaryNode : PrimaryNode
-{
-    public UnaryNode(OperatorNode op, LiteralNode rhs)
-        : base(op, rhs)
-    {
-    }
-}
-
 public enum LiteralKind
 {
     [Description("integer")] Integer,
     [Description("real")] Real,
-    [Description("boolean")] Boolean
+    [Description("boolean")] Boolean,
+    [Description("string")] String
 }
 
 public class LiteralNode : PrimaryNode, ILeafNode
@@ -474,16 +467,19 @@ public enum Operator
     [Description("and operator")] And,
     [Description("or operator")] Or,
     [Description("= operator")] Equal,
-    [Description("/= operator")] NotEqual,
+    [Description("!= operator")] NotEqual,
     [Description("< operator")] Less,
     [Description("<= operator")] LessOrEqual,
     [Description("> operator")] Greater,
-    [Description(">= operator")] GreaterOrEqual
+    [Description(">= operator")] GreaterOrEqual,
+    [Description(":= operator")] Assign,
+    [Description("is operator")] Is
 }
 
 public class OperatorNode : Node, ILeafNode
 {
     public Token Token { get; }
+    public int Weight { get; set; }
     public Enum? Kind { get; }
 
     public override IEnumerable<Node> GetChildren() =>
@@ -493,6 +489,101 @@ public class OperatorNode : Node, ILeafNode
     {
         Kind = kind;
         Token = token;
+        SetWeight();
+    }
+
+    public OperatorNode(Token token)
+    {
+        Token = token;
+        if (token.TokenId == Tokens.TkPlus)
+            Kind = Operator.Plus;
+        if (token.TokenId == Tokens.TkMinus)
+            Kind = Operator.Minus;
+        if (token.TokenId == Tokens.TkMultiply)
+            Kind = Operator.Multiply;
+        if (token.TokenId == Tokens.TkDivide)
+            Kind = Operator.Divide;
+        if (token.TokenId == Tokens.TkPercent)
+            Kind = Operator.Modulo;
+        if (token.TokenId == Tokens.TkXor)
+            Kind = Operator.Xor;
+        if (token.TokenId == Tokens.TkAnd)
+            Kind = Operator.And;
+        if (token.TokenId == Tokens.TkOr)
+            Kind = Operator.Or;
+        if (token.TokenId == Tokens.TkEqual)
+            Kind = Operator.Equal;
+        if (token.TokenId == Tokens.TkNotEqual)
+            Kind = Operator.NotEqual;
+        if (token.TokenId == Tokens.TkLess)
+            Kind = Operator.Less;
+        if (token.TokenId == Tokens.TkLeq)
+            Kind = Operator.LessOrEqual;
+        if (token.TokenId == Tokens.TkGreater)
+            Kind = Operator.Greater;
+        if (token.TokenId == Tokens.TkGeq)
+            Kind = Operator.GreaterOrEqual;
+        if (token.TokenId == Tokens.TkAssign)
+            Kind = Operator.Assign;
+        if (token.TokenId == Tokens.TkIs)
+            Kind = Operator.Is;
+        SetWeight();
+    }
+
+    protected void SetWeight()
+    {
+        if (Token.TokenId == Tokens.TkPlus)
+            Weight = 1;
+        if (Token.TokenId == Tokens.TkMinus)
+            Weight = 1;
+        if (Token.TokenId == Tokens.TkMultiply)
+            Weight = 2;
+        if (Token.TokenId == Tokens.TkDivide)
+            Weight = 2;
+        if (Token.TokenId == Tokens.TkPercent)
+            Weight = 2;
+        if (Token.TokenId == Tokens.TkXor)
+            Weight = -1;
+        if (Token.TokenId == Tokens.TkAnd)
+            Weight = -1;
+        if (Token.TokenId == Tokens.TkOr)
+            Weight = -1;
+        if (Token.TokenId == Tokens.TkEqual)
+            Weight = -1;
+        if (Token.TokenId == Tokens.TkNotEqual)
+            Weight = -1;
+        if (Token.TokenId == Tokens.TkLess)
+            Weight = -1;
+        if (Token.TokenId == Tokens.TkLeq)
+            Weight = -1;
+        if (Token.TokenId == Tokens.TkGreater)
+            Weight = -1;
+        if (Token.TokenId == Tokens.TkGeq)
+            Weight = -1;
+        if (Token.TokenId == Tokens.TkAssign)
+            Weight = 10;
+        if (Token.TokenId == Tokens.TkIs)
+            Weight = -1;
+    }
+
+    public void makeWeightPersistent()
+    {
+        Weight += 2;
+    }
+
+
+    public int Compare(OperatorNode otherNode)
+    {
+        /*
+         * Return -1 if weight of current obj is less than another obj.
+         * 0 - if weights are equal.
+         * 1 - if current weight bigger than another obj's weight.
+         */
+        if (Weight == otherNode.Weight)
+            return 0;
+        if (Weight < otherNode.Weight)
+            return -1;
+        return 1;
     }
 }
 
