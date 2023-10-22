@@ -1,0 +1,17 @@
+var int_ := 1;
+var real_ := 1.0;
+real_ := 2;
+var complex_declaration := real_ + 1;
+complex_declaration := 1 + int_ * real_ / int_ + 1;
+var isInt := int_ is Integer;
+
+var str1 := "abc";
+var str2 := "def";
+str1 := str1 + str2;
+
+var arr := [1];
+arr := arr + [1, 2];
+var tup := {a := 1, c};
+tup := tup + {b := 1};
+sum := arr[0] + arr[1] + tup.a + tup.b + func(x) => x + 1;
+/*сделать чтобы у переменных мог быть тип лист и кортеж в семантике*/

@@ -1,0 +1,4 @@
+var int_ := 1;
+var f_ := "true";
+var fff := 1 + f_;
+return 0;

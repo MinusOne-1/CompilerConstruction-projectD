@@ -24,7 +24,6 @@ public enum LiteralTypesIdentifiers
     TkArrayIdentifier = Tokens.TkArrayIdentifier,
     TkTupleIdentifier = Tokens.TkTupleIdentifier,
     TkEmptyIdentifier = Tokens.TkEmptyIdentifier,
-    
 }
 
 public enum KeywordTokens
@@ -45,7 +44,8 @@ public enum KeywordTokens
     TkArray = Tokens.TkArray,
     TkPrint = Tokens.TkPrint,
     TkIs = Tokens.TkIs,
-    
+    TkFunc = Tokens.TkFunc,
+    TkConsequence = Tokens.TkConsequence,
 }
 
 public enum OperatorTokens
@@ -62,9 +62,7 @@ public enum OperatorTokens
     TkXor = Tokens.TkXor,
     TkRange = Tokens.TkRange,
     TkIs = Tokens.TkIs
-
 }
-
 
 internal enum Comparators
 {

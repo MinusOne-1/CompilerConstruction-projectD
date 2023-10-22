@@ -61,9 +61,9 @@ public class IntTk : Token
 {
     public long Value { get; }
 
-    public IntTk(long value)
+    public IntTk(String value)
     {
-        Value = value;
+        TokenValue = value;
     }
 
     public override Tokens TokenId => Tokens.TkIntLiteral;
@@ -74,7 +74,7 @@ public class StringTk : Token
 
     public StringTk(string value)
     {
-        Value = value;
+        TokenValue = value;
     }
 
     public override Tokens TokenId => Tokens.TkStringLiteral;
@@ -84,9 +84,9 @@ public class RealTk : Token
 {
     public double Value { get; }
 
-    public RealTk(double value)
+    public RealTk(string value)
     {
-        Value = value;
+        TokenValue = value;
     }
 
     public override Tokens TokenId => Tokens.TkRealLiteral;
@@ -96,9 +96,9 @@ public class BoolTk : Token
 {
     public bool Value { get; }
 
-    public BoolTk(bool value)
+    public BoolTk(String value)
     {
-        Value = value;
+        TokenValue = value;
     }
 
     public override Tokens TokenId => Tokens.TkBoolLiteral;

@@ -10,12 +10,11 @@ public class Lexer
     private int _position;
 
     public List<Token> ProgramTokens { get; } = new();
-    
+
     public Lexer(string programText)
     {
         _programText = programText;
         _position = 0;
-
         FinalStateAutomata(programText);
     }
 
@@ -24,42 +23,85 @@ public class Lexer
         var buffer = "";
         var lineNumber = 1;
         var columnNumber = 1;
+        var index = 0;
         text += ' ';
         foreach (var symbol in text + ' ')
         {
             var preset = CheckForEnum(buffer);
+            if (preset == Tokens.TkEqual || preset == Tokens.TkGreater || preset == Tokens.TkLess ||
+                preset == Tokens.TkDot)
+            {
+                if (index < text.Length)
+                {
+                    var Next = CheckForEnum(buffer + text[index]);
+
+                    //Console.WriteLine(buffer + " - " + preset + "  |  " + (buffer + text[index]) + " - " + Next);
+                    if (Next != Tokens.TkUnknown)
+                    {
+                        buffer += symbol;
+                        index++;
+                        columnNumber++;
+                        continue;
+                    }
+                }
+
+            }
+
             Token token = null;
+
 
             if (TokenRegexes.Comments.IsMatch(buffer))
             {
                 lineNumber += Regex.Matches(buffer, "\r").Count;
                 buffer = "";
             }
-            else if (preset != Tokens.TkUnknown)
+
+
+            if (preset != Tokens.TkUnknown)
             {
 
+               // Console.WriteLine(buffer + " - " + preset);
                 if (Enum.IsDefined(typeof(LiteralTypesIdentifiers), (int)preset) && !char.IsLetter(symbol))
+                {
+                   // Console.WriteLine(1);
                     token = new EnumeratedTk<LiteralTypesIdentifiers>(preset);
+                }
                 else if (Enum.IsDefined(typeof(KeywordTokens), (int)preset) && !char.IsLetter(symbol))
+                {
+
+                   // Console.WriteLine(2);
                     token = new EnumeratedTk<KeywordTokens>(preset);
+                }
 
                 else if (TokenRegexes.Comparators.IsMatch(buffer))
-                    token = new EnumeratedTk<Comparators>(preset);
+                {
 
-                else if (TokenRegexes.Operators.IsMatch(buffer) && buffer + symbol is not (".." or "//" or "/*" or "/="))
+                  //  Console.WriteLine(3);
+                    token = new EnumeratedTk<Comparators>(preset);
+                }
+
+                else if (TokenRegexes.Operators.IsMatch(buffer) &&
+                         buffer + symbol is not (".." or "//" or "/*" or "/="))
+                {
+
+                 //   Console.WriteLine(4);
                     token = new EnumeratedTk<OperatorTokens>(preset);
+                }
 
                 else if (TokenRegexes.Puncuators.IsMatch(buffer) &&
                          !TokenRegexes.Comparators.IsMatch(symbol.ToString()))
-                    token = new EnumeratedTk<PunctuatorTokens>(preset);
+                {
 
+                 //   Console.WriteLine(5);
+                    token = new EnumeratedTk<PunctuatorTokens>(preset);
+                }
             }
             // Makes literal tokens of types integer and real
             else if (TokenRegexes.Numbers.IsMatch(buffer) &&
                      !(char.IsNumber(symbol) || char.IsLetter(symbol) || symbol == '.'))
             {
-                if (long.TryParse(buffer, out var integer)) token = new IntTk(integer);
-                else if (double.TryParse(buffer, out var real)) token = new RealTk(real);
+                if (long.TryParse(buffer, out var integer)) token = new IntTk(integer.ToString());
+                else if (double.TryParse(buffer, out var real)) token = new RealTk(real.ToString());
             }
             else if (TokenRegexes.Strings.IsMatch(buffer))
             {
@@ -67,7 +109,7 @@ public class Lexer
             }
             else if (bool.TryParse(buffer, out var boolean))
             {
-                token = new BoolTk(boolean);
+                token = new BoolTk(boolean.ToString());
             }
             else if (TokenRegexes.Identifiers.IsMatch(buffer) && !(char.IsLetterOrDigit(symbol) || symbol == '_'))
             {
@@ -96,7 +138,9 @@ public class Lexer
                 buffer = "";
             }
 
+
             buffer += symbol;
+            index++;
             columnNumber++;
         }
     }
@@ -104,7 +148,7 @@ public class Lexer
     private static Tokens CheckForEnum(string inputWord)
     {
         return inputWord switch
-        { 
+        {
             //KeyWords:
             "type" => Tokens.TkType,
             "is" => Tokens.TkIs,
@@ -120,7 +164,7 @@ public class Lexer
             "else" => Tokens.TkElse,
             "print" => Tokens.TkPrint,
             "func" => Tokens.TkFunc,
-            
+
             "Real" => Tokens.TkRealLiteralIdentifier,
             "Integer" => Tokens.TkIntLiteralIdentifier,
             "String" => Tokens.TkStringLiteralIdentifier,
@@ -139,6 +183,7 @@ public class Lexer
             ";" => Tokens.TkSemicolon,
             ":" => Tokens.TkColon,
             "," => Tokens.TkComma,
+            "=>" => Tokens.TkConsequence,
 
             //Operators:
             ":=" => Tokens.TkAssign,

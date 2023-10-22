@@ -1,0 +1,39 @@
+var a := 10;
+var b := 5;
+var c := 1.5;
+var d := 2.31;
+var summ_int_int := a + b;
+var summ_int_real := a + c;
+var summ_real_int := d + b;
+var summ_real_real := c + d;
+print summ_int_int, summ_int_int is Integer;
+print summ_int_real, summ_int_real is Real;
+print summ_real_int, summ_real_int is Real;
+print summ_real_real, summ_real_real is Real;
+
+var subt__int_int := a - b;
+var subt_int_real := a - c;
+var subt_real_int := d - b;
+var subt_real_real := d - c;
+print subt__int_int, subt__int_int is Integer;
+print subt_int_real, subt_int_real is Real;
+print subt_real_int, subt_real_int is Real;
+print subt_real_real, subt_real_real is Real;
+
+var mult__int_int := a * b;
+var mult_int_real := a * c;
+var mult_real_int := d * b;
+var mult_real_real := d * c;
+print mult__int_int, mult__int_int is Integer;
+print mult_int_real, mult_int_real is Real;
+print mult_real_int, mult_real_int is Real;
+print mult_real_real, mult_real_real is Real;
+
+var div__int_int := a / b;
+var div_int_real := a / c;
+var div_real_int := d / b;
+var div_real_real := d / c;
+print div__int_int, div__int_int is Integer;
+print div_int_real, div_int_real is Real;
+print div_real_int, div_real_int is Real;
+print div_real_real, div_real_real is Real;

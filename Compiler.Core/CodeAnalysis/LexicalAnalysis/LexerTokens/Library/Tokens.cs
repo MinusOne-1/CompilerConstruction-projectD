@@ -61,4 +61,5 @@ public enum Tokens
     TkRealLiteralIdentifier = 61,
     TkEmptyIdentifier = 62,
     TkFunc = 63,
+    TkConsequence = 64,
 };

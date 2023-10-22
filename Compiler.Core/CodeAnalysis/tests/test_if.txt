@@ -1,0 +1,8 @@
+var age := 25;
+if age <= 18 then
+    if age != 7 then
+        print := 1;
+    else
+        print "before 7";
+    end
+end
