@@ -4,7 +4,7 @@ using Compiler.Core.CodeAnalysis.LexicalAnalysis.LexerTokens.Library;
 
 namespace Compiler.Core.CodeAnalysis.SyntaxAnalysis;
 
-public partial class SyntaxAnalisis
+public class SyntaxAnalisis
 {
     public Tree Tree { get; private set; }
     public string syntaxError = "";
@@ -16,7 +16,7 @@ public partial class SyntaxAnalisis
     public SyntaxAnalisis(List<Token> tokens)
     {
         this.tokens = tokens;
-        this.CreateAST();
+        CreateAST();
     }
 
     public void SyntaxError(string nodeParser, Token token)
@@ -34,6 +34,7 @@ public partial class SyntaxAnalisis
             var currentToken = tokens[position];
             if (currentToken.TokenId == Tokens.TkVar)
             {
+                Console.WriteLine(1);
                 position++;
                 var endConditionsSemicolon = new List<Tokens>();
                 endConditionsSemicolon.Add(Tokens.TkSemicolon);
@@ -42,32 +43,53 @@ public partial class SyntaxAnalisis
             }
             else if (currentToken.TokenId == Tokens.TkIdentifier)
             {
-                var endConditionsSemicolon = new List<Tokens>();
-                endConditionsSemicolon.Add(Tokens.TkSemicolon);
-                var newChild = new VariableAssignmentNode(ParseVariableDeclaration(endConditionsSemicolon));
-                root.DeclarationList.Add(newChild);
+                Console.WriteLine(2);
+                IdentifierNode? identifier = ParseIdentifier();
+                
+                if (tokens[position + 1].TokenId == Tokens.TkAssign)
+                {
+                    position++;
+                    var endConditions = new List<Tokens>();
+                    endConditions.Add(Tokens.TkSemicolon);
+                    var varDecl = ParseVariableDeclaration(endConditions,identifier);
+                    var newChild = new VariableAssignmentNode(varDecl);
+                    root.DeclarationList.Add(newChild);
+                }
+                else if (tokens[position + 1].TokenId != Tokens.TkSemicolon)
+                {
+                    errorToken = tokens[position + 1];
+                }
             }
 
-            if (currentToken.TokenId == Tokens.TkPrint)
+            else if (currentToken.TokenId == Tokens.TkPrint)
             {
                 var newChild = ParsePrint();
                 root.DeclarationList.Add(newChild);
             }
 
-            if (currentToken.TokenId == Tokens.TkIf)
+            else if (currentToken.TokenId == Tokens.TkIf)
             {
                 var newChild = ParseIf();
                 root.DeclarationList.Add(newChild);
             }
-            if (currentToken.TokenId == Tokens.TkFor)
+            else if (currentToken.TokenId == Tokens.TkFor)
             {
                 var newChild = ParseFor();
                 root.DeclarationList.Add(newChild);
             }
-            if (currentToken.TokenId == Tokens.TkWhile)
+            else if (currentToken.TokenId == Tokens.TkFunc)
+            {
+                var newChild = ParseFunctionDeclaration();
+                root.DeclarationList.Add(newChild);
+            }
+            else if (currentToken.TokenId == Tokens.TkWhile)
             {
                 var newChild = ParseWhile();
                 root.DeclarationList.Add(newChild);
+            }
+            else
+            {
+                errorToken = currentToken;
             }
 
             if (errorToken != null)
@@ -80,10 +102,164 @@ public partial class SyntaxAnalisis
         }
     }
 
-    private FunctionNode ParseFunction()
+    private IdentifierNode? ParseIdentifier()
     {
-        throw new NotImplementedException();
+        if (tokens[position + 1].TokenId == Tokens.TkRoundOpen)
+            return ParseFunctionCall();
+        if (tokens[position + 1].TokenId == Tokens.TkSquareOpen)
+            return ParseArrayReference();
+        if (tokens[position + 1].TokenId == Tokens.TkDot)
+            return ParseTupleReference();
+        return new IdentifierNode(tokens[position]);
     }
+
+    private FunctionCallNode ParseFunctionCall()
+    {
+        IdentifierNode identifier;
+        if (tokens[position].TokenId == Tokens.TkIdentifier)
+            identifier = new IdentifierNode(tokens[position]);
+        else
+        {
+            var token = new IdentifierTk("lambda_func");
+            token.TokenValue = "lambda_func";
+            identifier = new IdentifierNode(token);
+        }
+
+        position++;
+        position++;
+        FunctionCallNode newNode = new FunctionCallNode(identifier);
+        ExpressionNode currentElement = null;
+        while (position < tokens.Count)
+        {
+            var currentToken = tokens[position];
+            if (currentToken.TokenId == Tokens.TkRoundClose)
+            {
+                if (currentElement != null)
+                {
+                    if (currentElement.Rhs == null)
+                        newNode.Arguments.Add(currentElement.Lhs);
+                    else
+                        newNode.Arguments.Add(currentElement);
+                }
+
+                position++;
+                break;
+            }
+
+            if (currentElement == null)
+            {
+                var endConditionsRClose = new List<Tokens>();
+                endConditionsRClose.Add(Tokens.TkComma);
+                endConditionsRClose.Add(Tokens.TkRoundClose);
+                currentElement = ParseExpression(endConditionsRClose);
+            }
+            else if (currentToken.TokenId == Tokens.TkComma)
+            {
+                if (currentElement.Rhs == null)
+                    newNode.Arguments.Add(currentElement.Lhs);
+                else
+                    newNode.Arguments.Add(currentElement);
+                currentElement = null;
+            }
+            else
+            {
+                errorToken = currentToken;
+            }
+
+            if (errorToken != null)
+                return newNode;
+            position++;
+        }
+
+       
+        if (identifier.Token.TokenValue == "lambda_func")
+        {
+            newNode.Function = ParseFunctionDeclaration(newNode);
+        }
+
+        return newNode;
+    }
+
+    private ArrayReferenceNode ParseArrayReference()
+    {
+        var endConditions = new List<Tokens>();
+        endConditions.Add(Tokens.TkSquareClose);
+        var identifier = new IdentifierNode(tokens[position]);
+        position += 2;
+        var newNode = new ArrayReferenceNode(identifier, ParseExpression(endConditions));
+        position++;
+        Console.WriteLine("AR - " + tokens[position]);;
+        return newNode;
+    }
+
+    private TupleReferenceNode ParseTupleReference()
+    {
+        var identifier = new IdentifierNode(tokens[position]);
+        position += 2;
+        return (new TupleReferenceNode(identifier, new IdentifierNode(tokens[position])));
+    }
+
+    private FunctionNode ParseFunctionDeclaration(FunctionCallNode? lambda = null)
+    {
+        FunctionNode newNode = null;
+        if (lambda != null)
+        {
+            newNode = new FunctionNode(lambda);
+            if (tokens[position].TokenId != Tokens.TkConsequence)
+            {
+                errorToken = tokens[position];
+                return null;
+            }
+
+            position++;
+            var endConditions = new List<Tokens>();
+            endConditions.Add(Tokens.TkSemicolon);
+            newNode.Expression = ParseExpression(endConditions);
+        }
+        else
+        {
+            newNode = new FunctionNode(new IdentifierNode(tokens[++position]));
+            position++;
+            while (tokens[++position].TokenId != Tokens.TkRoundClose)
+            {
+                Console.WriteLine("FD(nl)1 - " + tokens[position]);
+                if (tokens[position].TokenId == Tokens.TkIdentifier)
+                {
+                    newNode.Parametr.Add(new IdentifierNode(tokens[position]));
+                }
+                else if (tokens[position].TokenId != Tokens.TkComma)
+                {
+                    errorToken = tokens[position];
+                    Console.WriteLine("Error in paramentrs delc - Fuctuin Declaration");
+                }
+            }
+
+            position++;
+            
+            if (tokens[position].TokenId == Tokens.TkConsequence)
+            {
+                var endConditions = new List<Tokens>();
+                endConditions.Add(Tokens.TkSemicolon);
+                newNode.Expression = ParseExpression(endConditions);
+            }
+            else if (tokens[position].TokenId == Tokens.TkIs)
+            {
+                
+                var endConditions = new List<Tokens>();
+                endConditions.Add(Tokens.TkEnd);
+                Console.WriteLine("FD(nl)2 - " + tokens[position]);
+                newNode.Body = ParseBody(endConditions);
+            }
+            else
+            {
+                errorToken = tokens[position];
+                Console.WriteLine("Error in Function decl parser (not lambda)");
+            }
+        }
+
+        return newNode;
+    }
+
 
     private WhileLoopNode ParseWhile()
     {
@@ -106,6 +282,7 @@ public partial class SyntaxAnalisis
         endConditions.Clear();
         endConditions.Add(Tokens.TkEnd);
         endConditions.Add(Tokens.TkElse);
+        Console.WriteLine();
         newIfNode.ThenBody = ParseBody(endConditions);
         if (tokens[position].TokenId == Tokens.TkElse)
         {
@@ -113,20 +290,63 @@ public partial class SyntaxAnalisis
             endConditions.Add(Tokens.TkEnd);
             newIfNode.ElseBody = ParseBody(endConditions);
         }
+
         return newIfNode;
     }
-    
+
     private ForLoopNode ParseFor()
     {
+        position++;
         var newForNode = new ForLoopNode();
         var endConditions = new List<Tokens>();
+        Console.WriteLine("FOR - "+tokens[position]);
         newForNode.VariableIdentifier = new IdentifierNode(tokens[position]);
+        if (tokens[++position].TokenId != Tokens.TkIn)
+        {
+            errorToken = tokens[position];
+            Console.WriteLine("Error 1 in For parser");
+            return newForNode;
+        }
+
+
+        if (tokens[++position].TokenId != Tokens.TkIntLiteral)
+        {
+            errorToken = tokens[position];
+            Console.WriteLine("Error 2 in For parser");
+            return newForNode;
+        }
+        var to = new IdentifierNode(tokens[position]);
+        position++;
+        if (tokens[position].TokenId != Tokens.TkRange && tokens[position].TokenId != Tokens.TkLoop)
+        {
+            errorToken = tokens[position];
+            Console.WriteLine("Error 3 in For parser");
+            return newForNode;
+        }
+
+        if (tokens[position].TokenId == Tokens.TkRange && tokens[position+1].TokenId == Tokens.TkIntLiteral)
+        {
+            newForNode.Range = new RangeNode(to, new IdentifierNode(tokens[++position]));
+        }
+        else if (tokens[position].TokenId == Tokens.TkLoop)
+        {
+            var zeroInt = new IntTk("0");
+            zeroInt.TokenValue = "0";
+            newForNode.Range = new RangeNode(new IdentifierNode(zeroInt), to);
+        }
+        else
+        {
+            errorToken = tokens[position];
+            Console.WriteLine("Error 4 in For parser");
+            return newForNode;
+        }
+
         position++;
         endConditions.Add(Tokens.TkEnd);
         newForNode.Body = ParseBody(endConditions);
         return newForNode;
     }
-    
+
 
     private BodyNode ParseBody(List<Tokens> endConditions)
     {
@@ -136,6 +356,7 @@ public partial class SyntaxAnalisis
             var currentToken = tokens[position];
             if (currentToken.TokenId == Tokens.TkVar)
             {
+                Console.WriteLine(1);
                 position++;
                 var endConditionsSemicolon = new List<Tokens>();
                 endConditionsSemicolon.Add(Tokens.TkSemicolon);
@@ -144,10 +365,22 @@ public partial class SyntaxAnalisis
             }
             else if (currentToken.TokenId == Tokens.TkIdentifier)
             {
-                var endConditionsSemicolon = new List<Tokens>();
-                endConditionsSemicolon.Add(Tokens.TkSemicolon);
-                var newChild = new VariableAssignmentNode(ParseVariableDeclaration(endConditionsSemicolon));
-                body.Items.Add(newChild);
+                Console.WriteLine(2);
+                IdentifierNode? identifier = ParseIdentifier();
+                
+                if (tokens[position + 1].TokenId == Tokens.TkAssign)
+                {
+                    position++;
+                    var endConditionsSemicolon = new List<Tokens>();
+                    endConditionsSemicolon.Add(Tokens.TkSemicolon);
+                    var varDecl = ParseVariableDeclaration(endConditionsSemicolon,identifier);
+                    var newChild = new VariableAssignmentNode(varDecl);
+                    body.Items.Add(newChild);
+                }
+                else if (tokens[position + 1].TokenId != Tokens.TkSemicolon)
+                {
+                    errorToken = tokens[position + 1];
+                }
             }
             else if (currentToken.TokenId == Tokens.TkPrint)
             {
@@ -160,6 +393,34 @@ public partial class SyntaxAnalisis
                 var newChild = ParseIf();
                 body.Items.Add(newChild);
             }
+            
+            else if (currentToken.TokenId == Tokens.TkFor)
+            {
+                var newChild = ParseFor();
+                body.Items.Add(newChild);
+            }
+            else if (currentToken.TokenId == Tokens.TkFunc)
+            {
+                var newChild = ParseFunctionDeclaration();
+                body.Items.Add(newChild);
+            }
+            else if (currentToken.TokenId == Tokens.TkWhile)
+            {
+                var newChild = ParseWhile();
+                body.Items.Add(newChild);
+            }
+            else if (currentToken.TokenId == Tokens.TkReturn)
+            {
+                
+                var endConditionsSemicolon = new List<Tokens>();
+                endConditionsSemicolon.Add(Tokens.TkSemicolon);
+                body.Items.Add(new ReturnNode(ParseExpression(endConditionsSemicolon)));
+            }
+            else if (currentToken.TokenId == Tokens.TkBreak)
+            {
+                body.Items.Add(new BreakNode());
+            }
+
             else if (endConditions.Contains(currentToken.TokenId))
             {
                 //условие выхода: если выполнено условие выхода заданное в начале - возвращается.
@@ -177,18 +438,24 @@ public partial class SyntaxAnalisis
         return body;
     }
 
-    private VariableDeclarationNode ParseVariableDeclaration(List<Tokens> endConditions)
+    private VariableDeclarationNode ParseVariableDeclaration(List<Tokens> endConditions,
+        IdentifierNode? identifier = null)
     {
         VariableDeclarationNode newNode = null;
+        if (identifier != null)
+            newNode = new VariableDeclarationNode(identifier);
+
         while (position < tokens.Count)
         {
             var currentToken = tokens[position];
+            Console.WriteLine("VD - "+currentToken);
             if (currentToken.TokenId == Tokens.TkIdentifier && newNode == null)
             {
                 newNode = new VariableDeclarationNode(new IdentifierNode(currentToken));
             }
             else if (endConditions.Contains(currentToken.TokenId) && newNode != null)
             {
+                Console.WriteLine("VD end- "+currentToken);
                 if (newNode.Expression == null)
                     newNode.Type = new TypeNode(TypeKind.Empty, newNode.Identifier);
                 return newNode;
@@ -217,12 +484,15 @@ public partial class SyntaxAnalisis
         ExpressionNode newNode = new ExpressionNode();
         while (position < tokens.Count)
         {
+            ;
             var currentToken = tokens[position];
             if (newNode.Rhs == null)
             {
                 //первичное назначение правой части
                 if (currentToken.TokenId == Tokens.TkIdentifier)
-                    newNode.Rhs = new IdentifierNode(currentToken);
+                    newNode.Rhs = ParseIdentifier();
+                if (currentToken.TokenId == Tokens.TkFunc)
+                    newNode.Rhs = ParseFunctionCall();
                 if (currentToken.TokenId == Tokens.TkIntLiteral)
                     newNode.Rhs = new LiteralNode(LiteralKind.Integer, currentToken);
                 if (currentToken.TokenId == Tokens.TkRealLiteral)
@@ -329,7 +599,9 @@ public partial class SyntaxAnalisis
             {
                 //первичное назначение правой части
                 if (currentToken.TokenId == Tokens.TkIdentifier)
-                    newNode.Lhs = new IdentifierNode(currentToken);
+                    newNode.Lhs = ParseIdentifier();
+                if (currentToken.TokenId == Tokens.TkFunc)
+                    newNode.Lhs = ParseFunctionCall();
                 if (currentToken.TokenId == Tokens.TkIntLiteral)
                     newNode.Lhs = new LiteralNode(LiteralKind.Integer, currentToken);
                 if (currentToken.TokenId == Tokens.TkRealLiteral)

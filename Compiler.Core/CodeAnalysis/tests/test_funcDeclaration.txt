@@ -1,4 +1,10 @@
+func Increase(x) is
+    x := x + 1;
+    return x + 1;
+end
+
 var t := [];
 t[1000 + 1] := 25;
 t[100] := func(x) => x + 1;
 t[1000] := {a := 1, b := 2.7};
+

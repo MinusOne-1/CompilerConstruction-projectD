@@ -46,6 +46,7 @@ public enum KeywordTokens
     TkIs = Tokens.TkIs,
     TkFunc = Tokens.TkFunc,
     TkConsequence = Tokens.TkConsequence,
+    TkBreak = Tokens.TkBreak,
 }
 
 public enum OperatorTokens

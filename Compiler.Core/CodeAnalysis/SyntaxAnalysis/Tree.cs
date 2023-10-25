@@ -2,6 +2,7 @@
 using System.Text;
 using Compiler.Core.CodeAnalysis.LexicalAnalysis.LexerTokens;
 using Compiler.Core.CodeAnalysis.LexicalAnalysis.LexerTokens.Library;
+using Compiler.Core.CodeAnalysis.SemanticAnalyzer;
 using Newtonsoft.Json;
 
 namespace Compiler.Core.CodeAnalysis.SyntaxAnalysis;
@@ -45,12 +46,15 @@ public abstract class Node
         var children = GetChildren();
         var lastChild = children.LastOrDefault();
 
-        if (this is ILeafNode leaf)
+        if (this is ILeafNode leaf && !(this is IContainedLeaf))
         {
             builder.Length -= 2;
             if (leaf.Kind != null) builder.Append($": {leaf.Kind}");
             builder.Append(' ');
-            builder.AppendLine(leaf.Token.ToString());
+            if (GetType() != typeof(TupleReferenceNode) && GetType() != typeof(FunctionCallNode))
+                builder.AppendLine(leaf.Token.ToString());
+            else
+                builder.AppendLine(ToString());
             return builder;
         }
 
@@ -174,6 +178,7 @@ public class VariableDeclarationNode : DeclarationNode
     {
     }
 }
+
 public class VariableAssignmentNode : VariableDeclarationNode
 {
     public ExpressionNode? Expression { get; set; }
@@ -219,22 +224,6 @@ public class TypeNode : Node
     }
 }
 
-public class ArrayTypeNode : TypeNode
-{
-    public TypeNode ElementsType { get; }
-    public ExpressionNode SizeExpression { get; }
-
-    public override IEnumerable<Node> GetChildren() =>
-        GetChildren(null, Identifier, ElementsType, SizeExpression);
-
-    public ArrayTypeNode(IdentifierNode identifier, TypeNode elementsType, ExpressionNode sizeExpression)
-        : base(TypeKind.Array, identifier)
-    {
-        ElementsType = elementsType;
-        SizeExpression = sizeExpression;
-    }
-}
-
 public class BodyNode : ListNode<Node>
 {
     public BodyNode()
@@ -256,36 +245,108 @@ public interface IStatementNode
 {
 }
 
-public class AssignmentNode : Node, IStatementNode
+public interface IContainedLeaf
 {
-    public ModifiablePrimaryNode Identifier { get; }
-    public ExpressionNode Expression { get; }
+}
+
+public class ArrayReferenceNode : IdentifierNode, IStatementNode
+{
+    public ExpressionNode Index { get; set; }
+
+    public IdentifierNode Identifier { get; set; }
 
     public override IEnumerable<Node> GetChildren() =>
-        GetChildren(null, Identifier, Expression);
+        GetChildren(null, Identifier, Index);
 
-    public AssignmentNode(ModifiablePrimaryNode identifier, ExpressionNode expression)
+    public ArrayReferenceNode(Token token, IdentifierNode identifier)
+        : base(token)
     {
         Identifier = identifier;
-        Expression = expression;
+    }
+
+    public ArrayReferenceNode(IdentifierNode identifier, ExpressionNode index)
+        : base(identifier.Token)
+    {
+        Identifier = identifier;
+        Index = index;
     }
 }
-public class FunctionNode : DeclarationNode, IStatementNode
+
+public class TupleReferenceNode : IdentifierNode, IStatementNode
 {
-    public ExpressionNode? Parametr { get; set; }
-    public ExpressionNode Expression { get; set; }
+    public IdentifierNode Identifier { get; set; }
+    private IdentifierNode Argument { get; set; }
 
     public override IEnumerable<Node> GetChildren() =>
-        GetChildren(null, Parametr, Expression);
+        GetChildren(null, Identifier, Argument);
+
+    public TupleReferenceNode(IdentifierNode identifier, IdentifierNode arg)
+        : base(identifier.Token)
+    {
+        Identifier = identifier;
+        Argument = arg;
+    }
+
+    public override string ToString()
+    {
+        return "'" + Token.TokenValue + "." + Argument.Token.TokenValue + "' on " +
+               Token.Span.Merge(Argument.Token.Span);
+    }
+}
+
+public class FunctionCallNode : IdentifierNode, IStatementNode, IContainedLeaf
+{
+    public IdentifierNode Identifier { get; set; }
+    public List<ExpressionNode> Arguments { get; set; }
+
+    public FunctionNode Function { get; set; }
+
+    public override IEnumerable<Node> GetChildren() =>
+        GetChildren(null, Identifier, Function);
+
+    public FunctionCallNode(IdentifierNode identifier)
+        : base(identifier.Token)
+    {
+        Identifier = identifier;
+        Arguments = new List<ExpressionNode>();
+    }
+
+    public override string ToString()
+    {
+        Console.WriteLine(Arguments[0]);
+        return "'" + Token.TokenValue + "(" + Arguments.Count + " arguments) on " + Token.Span;
+    }
+}
+
+public class FunctionNode : DeclarationNode, IStatementNode
+{
+    public List<ExpressionNode>? Parametr { get; set; }
+    public ExpressionNode? Expression { get; set; }
+    public BodyNode? Body { get; set; }
+
+    public override IEnumerable<Node> GetChildren() =>
+        GetChildren(Parametr, Identifier, Expression, Body);
 
     public FunctionNode()
     {
     }
 
-    public FunctionNode(ExpressionNode condition, ExpressionNode body)
+    public FunctionNode(IdentifierNode ident, List<ExpressionNode> parametr, ExpressionNode expr, BodyNode body) :
+        base(ident)
     {
-        Parametr = condition;
-        Expression = body;
+        Parametr = parametr;
+        Expression = expr;
+        Body = body;
+    }
+    public FunctionNode(IdentifierNode ident) :
+        base(ident)
+    {
+        Parametr = new List<ExpressionNode>();
+    }
+
+    public FunctionNode(FunctionCallNode lambdaCall) : base(lambdaCall.Identifier)
+    {
+        Parametr = lambdaCall.Arguments;
     }
 }
 
@@ -311,13 +372,13 @@ public class WhileLoopNode : DeclarationNode, IStatementNode
 public class ForLoopNode : DeclarationNode, IStatementNode
 {
     public IdentifierNode VariableIdentifier { get; set; }
-    public RangeNode Range { get; set;}
-    public BodyNode Body { get; set;}
+    public RangeNode Range { get; set; }
+    public BodyNode Body { get; set; }
 
     public override IEnumerable<Node> GetChildren() =>
         GetChildren(null, VariableIdentifier, Range, Body);
 
-    public ForLoopNode(IdentifierNode variableIdentifier, RangeNode range, BodyNode body) 
+    public ForLoopNode(IdentifierNode variableIdentifier, RangeNode range, BodyNode body)
     {
         VariableIdentifier = variableIdentifier;
         Range = range;
@@ -349,8 +410,8 @@ public class RangeNode : Node
 public class IfNode : DeclarationNode, IStatementNode
 {
     public ExpressionNode Condition { get; set; }
-    public BodyNode ThenBody { get; set;}
-    public BodyNode? ElseBody { get; set;}
+    public BodyNode ThenBody { get; set; }
+    public BodyNode? ElseBody { get; set; }
 
     public override IEnumerable<Node> GetChildren() =>
         GetChildren(null, Condition, ThenBody, ElseBody);
@@ -361,10 +422,22 @@ public class IfNode : DeclarationNode, IStatementNode
         ThenBody = thenBody;
         ElseBody = elseBody;
     }
+
     public IfNode()
-    { }
+    {
+    }
 }
 
+public class BreakNode : Node, IStatementNode
+{
+
+    public override IEnumerable<Node> GetChildren() =>
+        GetChildren(null);
+
+    public BreakNode()
+    {
+    }
+}
 public class ReturnNode : Node, IStatementNode
 {
     public ExpressionNode? Expression { get; }
@@ -383,6 +456,7 @@ public class ExpressionNode : Node
     public ExpressionNode? Lhs { get; set; }
     public OperatorNode? Operator { get; set; }
     public ExpressionNode? Rhs { get; set; }
+    public TypeKind? Kind { get; set; }
 
     public override IEnumerable<Node> GetChildren() =>
         GetChildren(null, Lhs, Operator, Rhs);
@@ -444,6 +518,7 @@ public class IdentifierNode : PrimaryNode, ILeafNode
 {
     public Token Token { get; }
     public Enum? Kind => null!;
+
 
     public override IEnumerable<Node> GetChildren() =>
         GetChildren(null);
@@ -584,23 +659,5 @@ public class OperatorNode : Node, ILeafNode
         if (Weight < otherNode.Weight)
             return -1;
         return 1;
-    }
-}
-
-public class ModifiablePrimaryNode : PrimaryNode
-{
-    public IdentifierNode? Identifier { get; }
-    public ModifiablePrimaryNode? Prev { get; }
-    public ExpressionNode? Index { get; }
-
-    public override IEnumerable<Node> GetChildren() =>
-        GetChildren(null, Identifier, Prev, Index);
-
-    public ModifiablePrimaryNode(IdentifierNode? identifier, ModifiablePrimaryNode? prev = null,
-        ExpressionNode? index = null)
-    {
-        Identifier = identifier;
-        Prev = prev;
-        Index = index;
     }
 }

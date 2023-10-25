@@ -62,4 +62,5 @@ public enum Tokens
     TkEmptyIdentifier = 62,
     TkFunc = 63,
     TkConsequence = 64,
+    TkBreak = 65
 };

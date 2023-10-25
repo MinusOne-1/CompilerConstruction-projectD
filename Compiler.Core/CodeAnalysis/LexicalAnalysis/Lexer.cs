@@ -34,7 +34,7 @@ public class Lexer
                 if (index < text.Length)
                 {
                     var Next = CheckForEnum(buffer + text[index]);
-
+                    
                     //Console.WriteLine(buffer + " - " + preset + "  |  " + (buffer + text[index]) + " - " + Next);
                     if (Next != Tokens.TkUnknown)
                     {
@@ -55,11 +55,11 @@ public class Lexer
                 lineNumber += Regex.Matches(buffer, "\r").Count;
                 buffer = "";
             }
-
+            
 
             if (preset != Tokens.TkUnknown)
             {
-
+                
                // Console.WriteLine(buffer + " - " + preset);
                 if (Enum.IsDefined(typeof(LiteralTypesIdentifiers), (int)preset) && !char.IsLetter(symbol))
                 {
@@ -68,14 +68,14 @@ public class Lexer
                 }
                 else if (Enum.IsDefined(typeof(KeywordTokens), (int)preset) && !char.IsLetter(symbol))
                 {
-
+                    
                    // Console.WriteLine(2);
                     token = new EnumeratedTk<KeywordTokens>(preset);
                 }
 
                 else if (TokenRegexes.Comparators.IsMatch(buffer))
                 {
-
+                    
                   //  Console.WriteLine(3);
                     token = new EnumeratedTk<Comparators>(preset);
                 }
@@ -83,7 +83,7 @@ public class Lexer
                 else if (TokenRegexes.Operators.IsMatch(buffer) &&
                          buffer + symbol is not (".." or "//" or "/*" or "/="))
                 {
-
+                    
                  //   Console.WriteLine(4);
                     token = new EnumeratedTk<OperatorTokens>(preset);
                 }
@@ -91,7 +91,7 @@ public class Lexer
                 else if (TokenRegexes.Puncuators.IsMatch(buffer) &&
                          !TokenRegexes.Comparators.IsMatch(symbol.ToString()))
                 {
-
+                    
                  //   Console.WriteLine(5);
                     token = new EnumeratedTk<PunctuatorTokens>(preset);
                 }
@@ -137,7 +137,7 @@ public class Lexer
                 token.TokenValue = buffer;
                 buffer = "";
             }
-
+            
 
             buffer += symbol;
             index++;
@@ -164,6 +164,7 @@ public class Lexer
             "else" => Tokens.TkElse,
             "print" => Tokens.TkPrint,
             "func" => Tokens.TkFunc,
+            "break" => Tokens.TkBreak,
 
             "Real" => Tokens.TkRealLiteralIdentifier,
             "Integer" => Tokens.TkIntLiteralIdentifier,
