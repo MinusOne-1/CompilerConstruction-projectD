@@ -1,10 +1,15 @@
-func Increase(x) is
-    x := x + 1;
-    return x + 1;
+var inc_single_line_func := func(x) => x + 1;
+
+var check_multiply_line_func := func(x) is
+    var unused_in_function := 1;
+    
+    if x > 12 then
+        return x;
+    end
+    return x - 1;
 end
-
-var t := [];
-t[1000 + 1] := 25;
-t[100] := func(x) => x + 1;
-t[1000] := {a := 1, b := 2.7};
-
+var x := 1;
+var unused_in_program_body := 1;
+var not_a_func := 1;
+var out := inc_single_line_func(not_a_func) + 1 + not_a_func() + 2 + inc_single_line_func(not_a_func) + check_multiply_line_func(not_a_func);
+print out;

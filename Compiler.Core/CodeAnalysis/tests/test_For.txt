@@ -7,9 +7,29 @@ end
 i := 0;
 for i in 1 .. 5 loop
     print i;
-    e := i + 1;
+    age := i + 1;
     if age = 4 then
         age := 25;
         break;
+    end
+end
+
+for i in 1 .. 5 loop
+    var vari := 1;
+    if age < 1 then
+        var rfft := 1;
+        if age < 1 then
+                var rqqqfft := 1;
+                break;
+                rfft := 1;
+        end
+        var tqqqq1 := 1;
+        tqqqq1 := 4;
+    end
+    for i in 1 .. 5 loop
+        break;
+        for i in 1 .. 5 loop
+            for i in 1 .. 5 loop break; end
+        end
     end
 end

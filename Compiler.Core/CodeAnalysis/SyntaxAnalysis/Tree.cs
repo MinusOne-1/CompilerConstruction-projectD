@@ -88,7 +88,7 @@ public class ListNode<T> : ExpressionNode
 
 public class PrintNode : DeclarationNode
 {
-    public List<Node> Items { get; } = new();
+    public List<ExpressionNode> Items { get; set; } = new();
 
     public override IEnumerable<Node> GetChildren() =>
         GetChildren(Items);
@@ -111,6 +111,7 @@ public class TupleElementNode : VariableDeclarationNode
     public TupleElementNode(VariableDeclarationNode node)
         : base(node.Identifier)
     {
+        Identifier.Name = Identifier.Name + Identifier.Token.Span;
         Expression = node.Expression;
         Type = node.Type;
     }
@@ -275,7 +276,7 @@ public class ArrayReferenceNode : IdentifierNode, IStatementNode
 public class TupleReferenceNode : IdentifierNode, IStatementNode
 {
     public IdentifierNode Identifier { get; set; }
-    private IdentifierNode Argument { get; set; }
+    public IdentifierNode Argument { get; set; }
 
     public override IEnumerable<Node> GetChildren() =>
         GetChildren(null, Identifier, Argument);
@@ -313,41 +314,24 @@ public class FunctionCallNode : IdentifierNode, IStatementNode, IContainedLeaf
 
     public override string ToString()
     {
-        Console.WriteLine(Arguments[0]);
         return "'" + Token.TokenValue + "(" + Arguments.Count + " arguments) on " + Token.Span;
     }
 }
 
-public class FunctionNode : DeclarationNode, IStatementNode
+public class FunctionNode : ExpressionNode, IStatementNode
 {
-    public List<ExpressionNode>? Parametr { get; set; }
+    public List<IdentifierNode>? Parametr { get; set; }
     public ExpressionNode? Expression { get; set; }
     public BodyNode? Body { get; set; }
 
     public override IEnumerable<Node> GetChildren() =>
-        GetChildren(Parametr, Identifier, Expression, Body);
+        GetChildren(Parametr, Expression, Body);
 
     public FunctionNode()
     {
+        Parametr = new();
     }
 
-    public FunctionNode(IdentifierNode ident, List<ExpressionNode> parametr, ExpressionNode expr, BodyNode body) :
-        base(ident)
-    {
-        Parametr = parametr;
-        Expression = expr;
-        Body = body;
-    }
-    public FunctionNode(IdentifierNode ident) :
-        base(ident)
-    {
-        Parametr = new List<ExpressionNode>();
-    }
-
-    public FunctionNode(FunctionCallNode lambdaCall) : base(lambdaCall.Identifier)
-    {
-        Parametr = lambdaCall.Arguments;
-    }
 }
 
 public class WhileLoopNode : DeclarationNode, IStatementNode
@@ -528,7 +512,11 @@ public class IdentifierNode : PrimaryNode, ILeafNode
         Token = identifier;
     }
 
-    public string Name => (Token as IdentifierTk)?.Value!;
+    public string Name
+    {
+        get => (Token as IdentifierTk)?.Value!;
+        set { }
+    }
 }
 
 public enum Operator

@@ -1,8 +1,10 @@
-var age := 25;
+var tt := [];
+var age := 1;
 if age <= 18 then
     if age != 7 then
-        print := 1;
+       tt[1] := 1 + 1;
     else
         print "before 7";
     end
 end
+
