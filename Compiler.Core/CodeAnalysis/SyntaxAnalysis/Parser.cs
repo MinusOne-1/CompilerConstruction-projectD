@@ -209,7 +209,7 @@ public class SyntaxAnalisis
         }
         position++;
         //Console.WriteLine("FD(nl)2 - " + tokens[position]);
-
+        
         if (tokens[position].TokenId == Tokens.TkConsequence)
         {
             var endConditions = new List<Tokens>();
@@ -438,10 +438,10 @@ public class SyntaxAnalisis
             else if (currentToken.TokenId == Tokens.TkAssign && newNode != null)
             {
                 position++;
-
+                
                 newNode.Expression = ParseRightPartExpression(endConditions);
                 newNode.Expression.Operator = new OperatorNode(Operator.Assign, currentToken);
-
+                
                 position++;
                 return newNode;
             }
@@ -528,7 +528,7 @@ public class SyntaxAnalisis
                      (currentToken.TokenId == Tokens.TkGreater) || (currentToken.TokenId == Tokens.TkGeq))
             {
                 position++;
-
+                  
                 var newRhs = ParseRightPartExpression(endConditions);
                 newRhs.Lhs = newNode.Rhs;
                 newRhs.Operator = new OperatorNode(currentToken);

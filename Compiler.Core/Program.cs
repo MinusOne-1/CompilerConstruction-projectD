@@ -40,7 +40,7 @@ public static class Entrypoint
             Console.WriteLine("-------------------PARSER AST----------------------------");
             Console.WriteLine(TestSyntaxAnalizer.Tree);
             
-            v/*ar TestSemanticAnalizer = new SemanticAnalyser(TestSyntaxAnalizer.Tree);
+            var TestSemanticAnalizer = new SemanticAnalyser(TestSyntaxAnalizer.Tree);
             if (TestSemanticAnalizer.SemanticErrors.Count != 0)
             {
                 foreach (var err in TestSemanticAnalizer.SemanticErrors)
@@ -55,22 +55,24 @@ public static class Entrypoint
             }
             else
             {
-
+            
                 Console.WriteLine("-------------------AST AFTER SEMANTIC ANALYSE----------------------------");
                 Console.WriteLine(TestSemanticAnalizer.AST);
-                if(TestSemanticAnalizer.SemanticWarnings.Count != 0)
+                if(TestSemanticAnalizer.SemanticWarnings.Count != 0)    
                     Console.WriteLine("WARNINGS:");
                 foreach (var err in TestSemanticAnalizer.SemanticWarnings)
                 {
                     Console.WriteLine(err);
                 }
-            }*/
+                Console.WriteLine("\nFinal Variable Dictionary :");
+                TestSemanticAnalizer.PrintVariableDictionary(TestSemanticAnalizer.variablesDictionary);
+            }
         }
         else
         {
-
+            
             Console.WriteLine();
-            Console.WriteLine("------------------- SYNTAX ANALYSE ENDS WITH ERRORS----------------------------");
+            Console.WriteLine("------------------- SEMANTIC ANALYSE ENDS WITH ERRORS----------------------------");
             Console.WriteLine(TestSyntaxAnalizer.syntaxError);
             
         }

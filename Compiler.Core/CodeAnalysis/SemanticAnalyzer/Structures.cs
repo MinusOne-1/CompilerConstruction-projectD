@@ -11,24 +11,29 @@ public enum Types
     String,
     Array,
     Tuple,
-    Empty
+    Empty,
+    Function
 }
 
 
 
 public class VariableInformation
 {
-    private String name;
+    private string name;
     private Types? varType;
-    private Object? value;
-    private String? viewArea;
+    public Object? value;
+    private string? viewArea;
+    public bool usage;
+    public Dictionary<string, VariableInformation> localVars;
 
-    public VariableInformation(String name_, String type_ = null, Object value_ = null, String viewArea_ = null)
+    public VariableInformation(string name_, string type_ = null, Object value_ = null, string viewArea_ = null)
     {
         name = name_;
         varType = type_ == null ? Types.Empty : whatTypes(type_);
         value = value_;
         viewArea = (viewArea_ == null ? viewArea_ : "global");
+        usage = false;
+        localVars = new Dictionary<string, VariableInformation>();
     }
     
     public static Types? whatTypes(string type_)
@@ -73,14 +78,18 @@ public class VariableInformation
         value = value_;
     }
 
-    public Object? getViewArea()
+    public string getViewArea()
     {
         return viewArea;
+    }
+    public void setViewArea(string new_area)
+    {
+        viewArea = new_area;
     }
 
     public override string ToString()
     {
-        return name + "(" + varType + ")";
+        return name + "(" + varType + ", used=" + usage+ ")";
     }
 
     public bool isInitialyzed()
@@ -95,11 +104,15 @@ public class FucntionInformation
     private FunctionNode body;
     private List<VariableInformation>? arguments;
 
+    public bool
+        usage;
+
     public FucntionInformation(String name_, FunctionNode body_)
     {
         name = name_;
         body = body_;
         arguments = CreateSignature();
+        usage = false;
     }
 
     private List<VariableInformation> CreateSignature()
