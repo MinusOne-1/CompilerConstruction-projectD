@@ -8,20 +8,6 @@ namespace Compiler.Core;
 
 public static class Entrypoint
 {
-   /* public class Program
-    {
-        public readonly Type Type;
-        public readonly MethodInfo Entrypoint;
-
-        public Program(Type type, MethodInfo entrypoint)
-        {
-            Type = type;
-            Entrypoint = entrypoint;
-        }
-
-        public TReturn Call<TReturn>(params object[] args) =>
-            (TReturn)Entrypoint.Invoke(Type, args)!;
-    }*/
 
     public static void Main(string[] args)
     {
@@ -43,6 +29,7 @@ public static class Entrypoint
             var TestSemanticAnalizer = new SemanticAnalyser(TestSyntaxAnalizer.Tree);
             if (TestSemanticAnalizer.SemanticErrors.Count != 0)
             {
+                Console.WriteLine("------------------- SEMANTIC ANALYSE FINISHES WITH ERRORS----------------------------");
                 foreach (var err in TestSemanticAnalizer.SemanticErrors)
                 {
                     Console.WriteLine(err);
@@ -66,13 +53,16 @@ public static class Entrypoint
                 }
                 Console.WriteLine("\nFinal Variable Dictionary :");
                 TestSemanticAnalizer.PrintVariableDictionary(TestSemanticAnalizer.variablesDictionary);
+                
+                Console.WriteLine("------------------- INTERPRETER OUTPUT----------------------------");
+                var TestInterpretator = new Interpretator.Interpretator(TestSemanticAnalizer.variablesDictionary, TestSemanticAnalizer.AST);
             }
         }
         else
         {
             
             Console.WriteLine();
-            Console.WriteLine("------------------- SEMANTIC ANALYSE ENDS WITH ERRORS----------------------------");
+            
             Console.WriteLine(TestSyntaxAnalizer.syntaxError);
             
         }

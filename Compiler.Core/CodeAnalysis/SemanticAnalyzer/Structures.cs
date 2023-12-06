@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices.JavaScript;
+﻿using System.Runtime.InteropServices.JavaScript;
 using Compiler.Core.CodeAnalysis.SyntaxAnalysis;
 
 namespace Compiler.Core.CodeAnalysis.SemanticAnalyzer;
@@ -73,9 +73,24 @@ public class VariableInformation
         return value;
     }
 
-    public void setValue(Object value_)
+    public void setValue(Object? value_)
     {
         value = value_;
+        if(value_ == null)
+            setType(Types.Empty);
+        else if(value_ is int)
+            setType(Types.Integer);
+        else if(value_ is float)
+            setType(Types.Real);
+        else if(value_ is string)
+            setType(Types.String);
+        else if(value_ is bool)
+            setType(Types.Boolean);
+        else if(value_ is List<object>)
+            setType(Types.Array);
+        else if(value_.GetType() == typeof(FunctionNode))
+            setType(Types.Function);
+        else setType(Types.Empty);
     }
 
     public string getViewArea()
@@ -89,7 +104,7 @@ public class VariableInformation
 
     public override string ToString()
     {
-        return name + "(" + varType + ", used=" + usage+ ")";
+        return name + "(" + varType + ", used=" + usage+ ", type="+varType+")";
     }
 
     public bool isInitialyzed()

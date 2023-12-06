@@ -1,0 +1,4 @@
+﻿var tple := {a := 1, b := "str", c := true, d};
+print tple;
+print tple.a;
+print tple.not_a_property_of_this_tuple;

@@ -1,4 +1,4 @@
-using Compiler.Core.CodeAnalysis.LexicalAnalysis.LexerTokens;
+﻿using Compiler.Core.CodeAnalysis.LexicalAnalysis.LexerTokens;
 using Compiler.Core.CodeAnalysis.LexicalAnalysis.LexerTokens.Library;
 using Compiler.Core.CodeAnalysis.SyntaxAnalysis;
 
@@ -102,8 +102,13 @@ public class SemanticAnalyser
         else if (nodeType == typeof(VariableAssignmentNode))
         {
             context["assignment"]++;
-            foreach (var child in children)
-                CheckVarAssignmentSemantics((VariableAssignmentNode)node);
+            CheckVarAssignmentSemantics((VariableAssignmentNode)node);
+            context["assignment"]--;
+        }
+        else if (nodeType == typeof(MemberwiseAdditionNode))
+        {
+            context["assignment"]++;
+            CheckVarMemberwiseAdditionSemantics((MemberwiseAdditionNode)node);
             context["assignment"]--;
         }
 
@@ -196,7 +201,7 @@ public class SemanticAnalyser
 
         var newVar = new VariableInformation(varName);
         LocalArea.Add(varName);
-        // Console.WriteLine("VD beg ADD - " + varName);
+        Console.WriteLine("VD beg ADD - " + varName);
         AddVariable(newVar, node);
 
         if (node.Expression == null)
@@ -237,7 +242,9 @@ public class SemanticAnalyser
                 newVar.getType() != Types.Array && newVar.getType() != Types.Tuple)
             {
                 //if not empty - there should be LiteralNode in Expression? cause of the test-code or Optimization.
+
                 LocalArea.Add(varName);
+                Console.WriteLine("VD get  - " + LocalArea[LocalArea.Count - 1]);
                 GetVariable(node, "CheckVarDeclarationSemantics")
                     .setValue(GetTypedValueFromLiteralNode((LiteralNode)node.Expression.Rhs));
                 LocalArea.RemoveAt(LocalArea.Count - 1);
@@ -250,42 +257,112 @@ public class SemanticAnalyser
                 LocalArea.RemoveAt(LocalArea.Count - 1);
             }
         }
+        Console.WriteLine("VD - end " + varName);
     }
 
 
     private void CheckVarAssignmentSemantics(VariableAssignmentNode node)
     {
         var varName = node.Identifier.Name;
+        
+        Console.WriteLine("VA - beg " + varName);
         LocalArea.Add(varName);
         var variable = GetVariable(node, "CheckVarAssignmentSemantics");
 
-        if (node.Expression.Rhs.GetType() != typeof(FunctionNode) &&
-            node.Expression.Rhs.GetType() != typeof(FunctionNode))
-        {
-            //   Console.WriteLine("VA - ADD " + varName);
-            LocalArea.RemoveAt(LocalArea.Count - 1);
-        }
 
         if ((Operator)node.Expression.Operator.Kind != Operator.Assign)
         {
             SemanticErrors.Add("ERROR on " + node.Expression.Operator +
                                ":Unexpected operator in variable assignment context");
+            LocalArea.RemoveAt(LocalArea.Count - 1);
+            return;
         }
 
         if (variable != null)
         {
+            if (node.Expression.Rhs.GetType() == typeof(FunctionNode))
+            {
+                variable.setType(Types.Function);
+                variable.setValue(node.Expression.Rhs);
+            }
+            else if (node.Expression.Rhs.GetType() == typeof(TupleNode))
+            {
+                variable.setType(Types.Tuple);
+            }
+            else
+            {
+                //   Console.WriteLine("VA - ADD " + varName);
+                LocalArea.RemoveAt(LocalArea.Count - 1);
+            }
+
             variable.usage = true;
-            CheckExpressionSemantic(node.Expression);
+            var typExp = CheckExpressionSemantic(node.Expression);
+
+            if ((node.Expression.Rhs.GetType() != typeof(FunctionNode) &&
+                 node.Expression.Rhs.GetType() != typeof(TupleNode)) && !(typExp is null) &&  typExp != Types.Function &&
+                typExp != Types.Empty &&
+                typExp != Types.Array && typExp != Types.Tuple)
+            {
+                //if not empty - there should be LiteralNode in Expression? cause of the test-code or Optimization.
+                Console.WriteLine("_______________"+ (typExp == null) +" - " +node);
+                LocalArea.Add(varName);
+                variable.setValue(GetTypedValueFromLiteralNode((LiteralNode)node.Expression.Rhs));
+                LocalArea.RemoveAt(LocalArea.Count - 1);
+            }
+
+            if (node.Expression.Rhs.GetType() == typeof(FunctionNode) ||
+                node.Expression.Rhs.GetType() == typeof(TupleNode))
+            {
+                //  Console.WriteLine("VA - DEL " + varName);
+                LocalArea.RemoveAt(LocalArea.Count - 1);
+                if (typExp != Types.Tuple && typExp != Types.Function)
+                {
+                }
+            }
         }
         else
         {
             SemanticErrors.Add("ERROR: " + node + ": undeclared variable");
+            LocalArea.RemoveAt(LocalArea.Count - 1);
+        }
+        Console.WriteLine("VA - end " + varName);
+    }
+
+
+    private void CheckVarMemberwiseAdditionSemantics(MemberwiseAdditionNode node)
+    {
+        var varName = node.Identifier.Name;
+        LocalArea.Add(varName);
+        var variable = GetVariable(node, "CheckVarMemberwiseAdditionSemantics");
+        if (variable == null)
+        {
+            SemanticErrors.Add("ERROR: " + node + ": undeclared variable");
+            return;
         }
 
-        if (node.Expression.Rhs.GetType() == typeof(FunctionNode) ||
-            node.Expression.Rhs.GetType() == typeof(FunctionNode))
+
+        if ((Operator)node.Expression.Operator.Kind != Operator.MemberwiseAdition)
         {
-            //  Console.WriteLine("VA - DEL " + varName);
+            SemanticErrors.Add("ERROR on " + node.Expression.Operator +
+                               ":Unexpected operator in memberwise addition context");
+        }
+
+        variable.usage = true;
+        if (node.Expression.Rhs.GetType() != typeof(TupleNode))
+        {
+            //   Console.WriteLine("VA - ADD " + varName);
+            LocalArea.RemoveAt(LocalArea.Count - 1);
+            SemanticWarnings.Add("WARNING: " + node +
+                                 ": since the 2nd term of the Memberwise Addition Operation is not a tuple, then 1st term must be same types during program interpretation, be careful");
+        }
+
+        CheckExpressionSemantic(node.Expression);
+        if (node.Expression.Rhs.GetType() == typeof(TupleNode))
+        {
+            //   Console.WriteLine("VA - ADD " + varName);
+
+            SemanticWarnings.Add("WARNING: " + node +
+                                 ": since the 2nd term of the Memberwise Addition Operation is a tuple, then 1st term must be a tuple during program interpretation, be careful");
             LocalArea.RemoveAt(LocalArea.Count - 1);
         }
     }
@@ -307,7 +384,7 @@ public class SemanticAnalyser
             LocalArea.Add(((IdentifierNode)node).Name);
             var variable = GetVariable(node, "CheckExpressionSemantic + ID");
             LocalArea.RemoveAt(LocalArea.Count - 1);
-          //  Console.WriteLine("Id" + node);
+            //  Console.WriteLine("Id" + node);
             if (variable != null)
             {
                 variable.usage = true;
@@ -328,7 +405,6 @@ public class SemanticAnalyser
             {
                 CheckExpressionSemantic((ExpressionNode)item);
             }
-
             return exprType;
         }
 
@@ -366,8 +442,9 @@ public class SemanticAnalyser
         {
             // Console.WriteLine("TR");
             var name = ((TupleReferenceNode)node).Name;
-            LocalArea.Add(name);
+
             CheckExpressionSemantic(((TupleReferenceNode)node).Identifier);
+            LocalArea.Add(name);
             var ArgName = ((TupleReferenceNode)node).Argument.Name;
             LocalArea.Add(ArgName);
             var tuple = GetVariable(node, "CheckExpressionSemantic + TRN");
@@ -462,6 +539,13 @@ public class SemanticAnalyser
                 node.Rhs = MakeExpressionSimplee(node.Rhs);
             }
         }
+        else if (node.Operator.Kind.ToString() == Operator.MemberwiseAdition.ToString())
+        {
+            //  Console.WriteLine("MA");
+            exprType = CheckExpressionSemantic(node.Rhs);
+
+            // Console.WriteLine("end MA");
+        }
         else if (node.Operator.Kind.ToString() == Operator.Is.ToString())
         {
             //  Console.WriteLine("is");
@@ -502,8 +586,11 @@ public class SemanticAnalyser
             }
             else
             {
-                SemanticErrors.Add("ERROR on " + node.Operator + ":Invalid operands type: " + LhsType +
-                                   " operator " + RhsType);
+                if (RhsType != Types.Array && LhsType != Types.Array)
+                {
+                    SemanticErrors.Add("ERROR on " + node.Operator + ":Invalid operands type: " + LhsType +
+                                       " operator " + RhsType);
+                }
             }
         }
 
@@ -618,6 +705,7 @@ public class SemanticAnalyser
 
     private void AddVariable(VariableInformation newVar, Node node)
     {
+        Console.WriteLine(node + "Add Var " + newVar);
         var whereToAddPair = variablesDictionary;
         for (int i = 0; i < LocalArea.Count; i++)
         {
@@ -638,18 +726,7 @@ public class SemanticAnalyser
             {
                 if (whereToAddPair.ContainsKey(LocalArea[i]))
                 {
-                    if (whereToAddPair[LocalArea[i]].getType() == Types.Function ||
-                        whereToAddPair[LocalArea[i]].getType() == Types.Tuple)
-                    {
-                        whereToAddPair = whereToAddPair[LocalArea[i]].localVars;
-                    }
-                    else
-                    {
-                        SemanticErrors.Add("ERROR: " + node + ":Seeking subarea for this variable called '" +
-                                           String.Join("_", LocalArea.GetRange(0, i)) +
-                                           "' is nether a function or a tuple");
-                        return;
-                    }
+                    whereToAddPair = whereToAddPair[LocalArea[i]].localVars;
                 }
                 else
                 {
@@ -683,18 +760,7 @@ public class SemanticAnalyser
             {
                 if (whereToUpdatePair.ContainsKey(LocalArea[i]))
                 {
-                    if (whereToUpdatePair[LocalArea[i]].getType() == Types.Function ||
-                        whereToUpdatePair[LocalArea[i]].getType() == Types.Tuple)
-                    {
-                        whereToUpdatePair = whereToUpdatePair[LocalArea[i]].localVars;
-                    }
-                    else
-                    {
-                        SemanticErrors.Add("ERROR: " + node + ":Seeking subarea for this variable called '" +
-                                           String.Join("_", LocalArea.GetRange(0, i)) +
-                                           "' is nether a function or a tuple");
-                        return;
-                    }
+                    whereToUpdatePair = whereToUpdatePair[LocalArea[i]].localVars;
                 }
                 else
                 {
@@ -708,51 +774,38 @@ public class SemanticAnalyser
 
     private VariableInformation? GetVariable(Node node, string met_name)
     {
-        //     Console.WriteLine("------------GET VAR : " + LocalArea.Count + " --------------- from " + met_name);
+        Console.WriteLine("------------GET VAR : " + LocalArea.Count + " --------------- from " + met_name);
         // PrintVariableDictionary(variablesDictionary);
         var whereToFindVariable = variablesDictionary;
         for (int i = 0; i < LocalArea.Count; i++)
         {
-            //    Console.WriteLine("GV: " + LocalArea[i]);
+            Console.WriteLine("GV: " + LocalArea[i]);
             if (i == LocalArea.Count - 1)
             {
                 if (whereToFindVariable.ContainsKey(LocalArea[i]))
                 {
-                    //           Console.WriteLine("Return var");
+                    Console.WriteLine("Return var");
+
                     return whereToFindVariable[LocalArea[i]];
                 }
 
 //                SemanticErrors.Add("ERROR: " + node + ":Variable undeclared in this area(" + String.Join("_", LocalArea) + ")");
 
-                //     Console.WriteLine("Return err1");
+                Console.WriteLine("Return err1");
                 return null;
             }
 
             if (whereToFindVariable.ContainsKey(LocalArea[i]))
             {
-                if (whereToFindVariable[LocalArea[i]].getType() == Types.Function ||
-                    whereToFindVariable[LocalArea[i]].getType() == Types.Tuple)
-                {
-                    //      Console.WriteLine("get as local area ");
-                    whereToFindVariable = whereToFindVariable[LocalArea[i]].localVars;
-                }
-                else
-                {
-                 /*   SemanticErrors.Add("ERROR: " + node + ":The subarea for this variable called '" +
-                                       String.Join("_", LocalArea.GetRange(0, i)) +
-                                       "' is nether a function or a tuple");*/
-                    //    Console.WriteLine("Return err2");
-                    //    Console.WriteLine(String.Join("_", LocalArea));
-
-                    return null;
-                }
+                //      Console.WriteLine("get as local area ");
+                whereToFindVariable = whereToFindVariable[LocalArea[i]].localVars;
             }
             else
             {
-               /* SemanticErrors.Add("ERROR: " + node + ":There is no subarea called '" +
-                                   String.Join("_", LocalArea.GetRange(0, i)) + "'");*/
+                /* SemanticErrors.Add("ERROR: " + node + ":There is no subarea called '" +
+                                    String.Join("_", LocalArea.GetRange(0, i)) + "'");*/
 
-                // Console.WriteLine("Return err3");
+                Console.WriteLine("Return err3");
                 return null;
             }
         }
@@ -764,11 +817,11 @@ public class SemanticAnalyser
     {
         if (gap == "")
             Console.WriteLine("---------------------------------------------------------------");
-        Console.WriteLine(gap + (gap==""?"D":" Local d") + "ictionary contains: " + varDict.Count + " variables");
+        Console.WriteLine(gap + (gap == "" ? "D" : " Local d") + "ictionary contains: " + varDict.Count + " variables");
         var idx = 1;
         foreach (var c in varDict.ToList())
         {
-            Console.WriteLine(gap + (gap==""?"":" ") + idx + ". " + c.Key + " | " + c.Value);
+            Console.WriteLine(gap + (gap == "" ? "" : " ") + idx + ". " + c.Key + " | " + c.Value);
             if (c.Value.localVars.Count != 0)
             {
                 var newGap = gap + "----";

@@ -1,15 +1,18 @@
-var inc_single_line_func := func(x) => x + 1;
-
+﻿var inc_single_line_func := func(x) => x + 1;
+var rrr := 1;
 var check_multiply_line_func := func(x) is
     var unused_in_function := 1;
-    
+    print "inside function";
+    rrr := rrr + 1;
     if x > 12 then
         return x;
     end
     return x - 1;
+    
 end
 var x := 1;
 var unused_in_program_body := 1;
 var not_a_func := 1;
-var out := inc_single_line_func(not_a_func) + 1 + not_a_func() + 2 + inc_single_line_func(not_a_func) + check_multiply_line_func(not_a_func);
-print out;
+print "check_multiply_line_func with 15 as an arg: ";
+var out__ := inc_single_line_func(not_a_func) + 1 + not_a_func + 2 + inc_single_line_func(not_a_func) + check_multiply_line_func(not_a_func);
+print "out: ", out__;

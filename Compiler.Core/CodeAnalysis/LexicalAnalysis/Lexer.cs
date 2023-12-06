@@ -28,8 +28,9 @@ public class Lexer
         foreach (var symbol in text + ' ')
         {
             var preset = CheckForEnum(buffer);
+            
             if (preset == Tokens.TkEqual || preset == Tokens.TkGreater || preset == Tokens.TkLess ||
-                preset == Tokens.TkDot)
+                preset == Tokens.TkDot || preset == Tokens.TkPlus)
             {
                 if (index < text.Length)
                 {
@@ -188,6 +189,7 @@ public class Lexer
 
             //Operators:
             ":=" => Tokens.TkAssign,
+            "+=" => Tokens.TkMemberwiseAddition,
             "." => Tokens.TkDot,
             "-" => Tokens.TkMinus,
             "+" => Tokens.TkPlus,

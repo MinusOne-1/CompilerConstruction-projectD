@@ -62,7 +62,8 @@ public enum OperatorTokens
     TkOr = Tokens.TkOr,
     TkXor = Tokens.TkXor,
     TkRange = Tokens.TkRange,
-    TkIs = Tokens.TkIs
+    TkIs = Tokens.TkIs,
+    TkMemberwiseAddition = Tokens.TkMemberwiseAddition,
 }
 
 internal enum Comparators

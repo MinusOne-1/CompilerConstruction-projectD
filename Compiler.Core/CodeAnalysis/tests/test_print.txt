@@ -1,0 +1,30 @@
+﻿print 5+7, 5+5*5, (5+5)*5, [1,1,"5"];     
+// output: 12, 30, 50, [1, 1, 5] 
+
+var str_var := "str with true";
+print "str_var contains: ", str_var; 
+// output: "str_var contains: ", "str with true"
+
+print "(5 > 5): ", (5 > 5); 
+// output: "(5 > 5): ", False
+
+print "(5 >= 5): ", (5 >= 5);  
+// output: "(5 >= 5): ", True
+
+print "(5 < 8): ",(5 < 8); 
+// output:  "(5 < 8): ", True
+
+print "(5 <= 5): ", (5 <= 5);  
+// output:  "(5 <= 5): ", True
+
+print "(5 = 5): ", (5 = 5); 
+ // output: "(5 = 5): ", True
+ 
+print "(true and false): ", (true and false), "(true or false): ", (true or false);   
+ // output: "(true and false): ", False, "(true or false): ", True
+
+
+
+
+
+

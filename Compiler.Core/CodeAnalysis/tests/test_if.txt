@@ -1,10 +1,15 @@
-var tt := [];
-var age := 1;
+﻿var age := 7;
 if age <= 18 then
     if age != 7 then
-       tt[1] := 1 + 1;
+       print "age not equal to 7";
     else
-        print "before 7";
+        print "age is equal to 7";
     end
+    if age > 7 then
+           print "age greater than 7";
+        else
+            print "age less than 7";
+        end
+        
 end
 

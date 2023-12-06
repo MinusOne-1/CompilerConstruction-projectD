@@ -1,34 +1,50 @@
 ﻿var i := 1;
 var age := 1;
+print "first loop";
 for i in 5 loop
-    print i;
+    print "i: ", i;
     age := i + 1;
 end
 i := 0;
+
+
+print "second loop";
 for i in 1 .. 5 loop
-    print i;
+    print "i: ", i;
     age := i + 1;
     if age = 4 then
+        print "break loop in if";
         age := 25;
         break;
     end
 end
 
-for i in 1 .. 5 loop
-    var vari := 1;
-    if age < 1 then
+
+print "3rd loop";
+var vari := 1;
+for i in 1 .. 5 loop 
+    
+    print "before if vari is: ", vari, "age is: ", age;
+    if age < 5 then
         var rfft := 1;
+        age := 6;
         if age < 1 then
                 var rqqqfft := 1;
                 break;
+                print "unreachable print";
                 rfft := 1;
         end
         var tqqqq1 := 1;
-        tqqqq1 := 4;
+        tqqqq1 := 4; 
+    else
+        vari := vari+5;
+        age := 2;
     end
-    for i in 1 .. 5 loop
+    print "now vari is: ", vari, "age is: ", age;
+    for i in 1 .. 5 loop 
         break;
-        for i in 1 .. 5 loop
+        print "unreachable print";
+        for i in 1 .. 5 loop 
             for i in 1 .. 5 loop break; end
         end
     end

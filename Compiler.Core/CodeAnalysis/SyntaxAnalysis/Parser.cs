@@ -55,6 +55,16 @@ public class SyntaxAnalisis
                     var newChild = new VariableAssignmentNode(varDecl);
                     root.DeclarationList.Add(newChild);
                 }
+
+                else if (tokens[position + 1].TokenId == Tokens.TkMemberwiseAddition)
+                {
+                    position++;
+                    var endConditions = new List<Tokens>();
+                    endConditions.Add(Tokens.TkSemicolon);
+                    var varDecl = ParseVariableDeclaration(endConditions, identifier);
+                    var newChild = new MemberwiseAdditionNode(varDecl);
+                    root.DeclarationList.Add(newChild);
+                }
                 else if (tokens[position + 1].TokenId != Tokens.TkSemicolon)
                 {
                     errorToken = tokens[position + 1];
@@ -295,7 +305,7 @@ public class SyntaxAnalisis
             return newForNode;
         }
 
-        var to = new IdentifierNode(tokens[position]);
+        var to = new LiteralNode(LiteralKind.Integer, tokens[position]);
         position++;
         if (tokens[position].TokenId != Tokens.TkRange && tokens[position].TokenId != Tokens.TkLoop)
         {
@@ -306,13 +316,13 @@ public class SyntaxAnalisis
 
         if (tokens[position].TokenId == Tokens.TkRange && tokens[position + 1].TokenId == Tokens.TkIntLiteral)
         {
-            newForNode.Range = new RangeNode(to, new IdentifierNode(tokens[++position]));
+            newForNode.Range = new RangeNode(to, new LiteralNode(LiteralKind.Integer, tokens[++position]));
         }
         else if (tokens[position].TokenId == Tokens.TkLoop)
         {
             var zeroInt = new IntTk("0");
             zeroInt.TokenValue = "0";
-            newForNode.Range = new RangeNode(new IdentifierNode(zeroInt), to);
+            newForNode.Range = new RangeNode(new LiteralNode(LiteralKind.Integer, zeroInt), to);
         }
         else
         {
@@ -355,6 +365,16 @@ public class SyntaxAnalisis
                     endConditionsSemicolon.Add(Tokens.TkSemicolon);
                     var varDecl = ParseVariableDeclaration(endConditionsSemicolon, identifier);
                     var newChild = new VariableAssignmentNode(varDecl);
+                    body.Items.Add(newChild);
+                }
+                
+                else if (tokens[position + 1].TokenId == Tokens.TkMemberwiseAddition)
+                {
+                    position++;
+                    var endConditionsSemicolon = new List<Tokens>();
+                    endConditionsSemicolon.Add(Tokens.TkSemicolon);
+                    var varDecl = ParseVariableDeclaration(endConditionsSemicolon, identifier);
+                    var newChild = new MemberwiseAdditionNode(varDecl);
                     body.Items.Add(newChild);
                 }
                 else if (tokens[position + 1].TokenId != Tokens.TkSemicolon)
@@ -441,6 +461,16 @@ public class SyntaxAnalisis
                 
                 newNode.Expression = ParseRightPartExpression(endConditions);
                 newNode.Expression.Operator = new OperatorNode(Operator.Assign, currentToken);
+                
+                position++;
+                return newNode;
+            }
+            else if (currentToken.TokenId == Tokens.TkMemberwiseAddition && newNode != null)
+            {
+                position++;
+                
+                newNode.Expression = ParseRightPartExpression(endConditions);
+                newNode.Expression.Operator = new OperatorNode(Operator.MemberwiseAdition, currentToken);
                 
                 position++;
                 return newNode;
@@ -705,6 +735,8 @@ public class SyntaxAnalisis
 
         return newNode;
     }
+
+   
 
     private TupleNode ParseTuple()
     {

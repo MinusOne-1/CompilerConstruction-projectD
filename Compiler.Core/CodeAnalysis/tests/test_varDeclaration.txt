@@ -1,21 +1,27 @@
-var int_ := 1;
+﻿var int_ := 1 + 1;
 var real_ := 1.0;
 real_ := 2;
 var complex_declaration := 1 + real_ + 1;
 complex_declaration := 1 + int_ * real_ / int_ + 1;
 var isInt := int_ is Integer;
+print isInt;
 
 var str1 := "abc";
 var str2 := "def";
 str1 := str1 + str2;
 
-var arr := [1];
-arr := arr + [1, 2];
+var arr := ["el1"];
+// add to array
+arr := [5, 2] + arr + 1.1;
 var x := 1 + 1 + 1 + 1;
 var sum := arr[0] + arr[1];
 
+print arr;
 if arr = [] then
-var unused_var := 1;
-var unused_var1 := 1;
-var unused_var2 := 1;
+    print "list is empty";
+    var unused_var := 1;
+    var unused_var1 := 1;
+    var unused_var2 := 1;
+else
+    print "list is not empty";
 end

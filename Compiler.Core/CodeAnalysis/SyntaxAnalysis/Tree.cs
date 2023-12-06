@@ -200,6 +200,17 @@ public class VariableAssignmentNode : VariableDeclarationNode
     }
 }
 
+public class MemberwiseAdditionNode : VariableAssignmentNode
+{
+    public MemberwiseAdditionNode(IdentifierNode identifier) : base(identifier)
+    {
+        
+    }
+    public MemberwiseAdditionNode(VariableDeclarationNode node) : base(node)
+    {
+    }
+}
+
 public enum TypeKind
 {
     [Description("integer")] Integer,
@@ -331,7 +342,6 @@ public class FunctionNode : ExpressionNode, IStatementNode
     {
         Parametr = new();
     }
-
 }
 
 public class WhileLoopNode : DeclarationNode, IStatementNode
@@ -414,7 +424,6 @@ public class IfNode : DeclarationNode, IStatementNode
 
 public class BreakNode : Node, IStatementNode
 {
-
     public override IEnumerable<Node> GetChildren() =>
         GetChildren(null);
 
@@ -422,6 +431,7 @@ public class BreakNode : Node, IStatementNode
     {
     }
 }
+
 public class ReturnNode : Node, IStatementNode
 {
     public ExpressionNode? Expression { get; }
@@ -521,6 +531,7 @@ public class IdentifierNode : PrimaryNode, ILeafNode
 
 public enum Operator
 {
+    [Description("+= operator")] MemberwiseAdition,
     [Description("+ operator")] Plus,
     [Description("- operator")] Minus,
     [Description("* operator")] Multiply,
